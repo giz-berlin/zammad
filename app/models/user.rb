@@ -353,6 +353,12 @@ returns
 =end
 
   def self.create_from_hash!(hash)
+    matching_role_ids = nil
+    if Setting.get('auth_saml_credentials')['role_sync']
+      # set roles according to the SAML response
+      saml_roles = Role.get_role_names_from_saml(hash)
+      matching_role_ids = Role.get_matching_role_ids(saml_roles) if saml_roles
+    end
 
     url = ''
     hash['info']['urls']&.each_value do |local_url|
@@ -369,7 +375,7 @@ returns
         web:           url,
         note:          hash['info']['description'],
         source:        hash['provider'],
-        role_ids:      Role.signup_role_ids,
+        role_ids:      (matching_role_ids.presence || Role.signup_role_ids),
         updated_by_id: 1,
         created_by_id: 1,
       }
